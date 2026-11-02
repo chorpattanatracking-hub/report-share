@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>แชร์รายงาน</title>
+<script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+  body { margin: 0; font-family: -apple-system, "Sarabun", "Noto Sans Thai", sans-serif; background: #f4f7fb; color: #1b2533;
+         display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  .box { background: #fff; border-radius: 14px; padding: 28px 22px; width: min(88vw, 380px); text-align: center;
+         box-shadow: 0 2px 12px rgba(0,0,0,.08); }
+  h1 { font-size: 19px; margin: 0 0 10px; color: #1F3864; }
+  p { font-size: 15px; margin: 8px 0; color: #5d6b80; line-height: 1.5; }
+  button { margin-top: 16px; width: 100%; padding: 13px; font-size: 16px; border: 0; border-radius: 10px;
+           background: #06C755; color: #fff; font-weight: 600; display: none; }
+  button.secondary { background: #e9edf3; color: #1b2533; }
+</style>
+</head>
+<body>
+<div class="box">
+  <h1>📤 แชร์รายงาน</h1>
+  <p id="msg">กำลังเตรียมรายงาน…</p>
+  <button id="share">เลือกผู้รับและแชร์</button>
+  <button id="close" class="secondary">ปิด</button>
+</div>
+<script>
+  // ตั้งค่า (ช.พัฒนาฯ สนภ.5)
+  const LIFF_ID = '2012324862-PLhYRy2j';
+  const API = 'https://script.google.com/macros/s/AKfycbxt_KIRCzOHqo6ViKl_9gds2S1LSs_Q6S_ALlpebKNg-9snEVNObxiS4iANkGfx_xd--g/exec';
+
+  const $ = id => document.getElementById(id);
+  const say = t => { $('msg').textContent = t; };
+  let message = null;
+
+  function reportId() {
+    const q = new URLSearchParams(location.search);
+    if (q.get('id')) return q.get('id');
+    const st = q.get('liff.state');   // ครั้งแรกที่เปิด LIFF จะส่งพารามิเตอร์มาใน liff.state
+    return st ? new URLSearchParams(st.replace(/^[^?]*\?/, '')).get('id') : null;
+  }
+
+  async function share() {
+    try {
+      const res = await liff.shareTargetPicker([message], { isMultiple: true });
+      if (res) { say('✅ แชร์รายงานเรียบร้อย'); setTimeout(() => liff.closeWindow(), 1200); }
+      else { say('ยกเลิกการแชร์'); $('share').style.display = 'block'; }
+    } catch (e) {
+      say('แชร์ไม่สำเร็จ: ' + (e.message || e));
+      $('share').style.display = 'block';
+    }
+  }
+
+  (async () => {
+    $('close').onclick = () => liff.closeWindow();
+    $('share').onclick = share;
+    try {
+      await liff.init({ liffId: LIFF_ID });
+      if (!liff.isInClient() && !liff.isLoggedIn()) { liff.login({ redirectUri: location.href }); return; }
+      $('close').style.display = 'block';
+      if (!liff.isApiAvailable('shareTargetPicker')) { say('อุปกรณ์นี้แชร์ไม่ได้ กรุณาเปิดจากแอป LINE บนมือถือ'); return; }
+      const id = reportId();
+      if (!id) { say('ไม่พบรหัสรายงาน'); return; }
+      const r = await fetch(API + '?share=' + encodeURIComponent(id));
+      const j = await r.json();
+      if (!j.ok) { say('ไม่พบรายงานนี้ (อาจถูกลบไปแล้ว)'); return; }
+      message = j.message;
+      say('เลือกผู้รับหรือกลุ่มที่ต้องการส่งรายงาน');
+      $('share').style.display = 'block';
+      share();   // เปิดหน้าเลือกผู้รับทันที (ถ้าเบราว์เซอร์บล็อก ให้กดปุ่มเอง)
+    } catch (e) {
+      say('เกิดข้อผิดพลาด: ' + (e.message || e));
+    }
+  })();
+</script>
+</body>
+</html>
