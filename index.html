@@ -42,7 +42,8 @@
 
   async function share() {
     try {
-      const res = await liff.shareTargetPicker([message], { isMultiple: true });
+      const msgs = Array.isArray(message) ? message : [message];   // การ์ด + ภาพแดชบอร์ด
+      const res = await liff.shareTargetPicker(msgs, { isMultiple: true });
       if (res) { say('✅ แชร์รายงานเรียบร้อย'); setTimeout(() => liff.closeWindow(), 1200); }
       else { say('ยกเลิกการแชร์'); $('share').style.display = 'block'; }
     } catch (e) {
